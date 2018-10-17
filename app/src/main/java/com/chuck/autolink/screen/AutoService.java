@@ -1,18 +1,24 @@
-package com.chuck.autolink;
+package com.chuck.autolink.screen;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 
+import static com.chuck.autolink.data.Defines.REQUEST_CODE_CAPTURE;
+
 public class AutoService extends Service {
     public static final String ACTION_STARTSERVICE = "com.chuck.autolink.startservice";
     public static final String ACTION_STOPSERVICE = "com.chuck.autolink.stopservice";
     private MediaProjectionManager mMediaProjectionManager;
-    private ServiceBinder mBinder;
+    private MediaProjection mMediaProjection;
+    private ScreenRecord mScreenRecord;
 
+    private ServiceBinder mBinder;
+    private Listener mListener;
 
     public AutoService() {
     }
@@ -27,7 +33,6 @@ public class AutoService extends Service {
     public void onCreate() {
         super.onCreate();
         mMediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
 
         mBinder = new ServiceBinder();
     }
@@ -42,39 +47,26 @@ public class AutoService extends Service {
     public class ServiceBinder extends Binder {
         public  ServiceBinder(){}
 
-//        public int ForceLandscape(boolean paramBoolean) {
-//            return  CarLinkService.this.ForceLandscape(paramBoolean);
-//        }
-
         public void checkAccessoryConfigue() {
-
-        }
-
-        public int getStatus() {
-            return 0;
         }
 
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
-
+            mMediaProjection = mMediaProjectionManager.getMediaProjection(resultCode, data);
+            mScreenRecord = new ScreenRecord(mMediaProjection);
+            mScreenRecord.start();
         }
 
-        public int start() {
-            return 0;
+        public void registListener(Listener  listener) {
+            mListener = listener;
+            Intent captureIntent = mMediaProjectionManager.createScreenCaptureIntent();
+            mListener.requestPermission(captureIntent, REQUEST_CODE_CAPTURE);
         }
 
-        public int stop() {
-            return 0;
+        public void unregistListener(Listener  listener) {
+            if (mListener == listener) {
+                mListener = null;
+            }
         }
-
-//        public void registListener(Listener  listener) {
-//            mListener = listener;
-//        }
-//
-//        public void unregistListener(Listener  listener) {
-//            if (mListener == listener) {
-//                mListener = null;
-//            }
-//        }
     }
 
 
@@ -83,7 +75,7 @@ public class AutoService extends Service {
         void onFrameOut(int i,int i2);
         void onLoseAccessory();
         void onStatusChanged(int i);
-        void requestPermission(Intent intent, int i);
+        void requestPermission(Intent intent, int id);
         void requestUpdate(Bundle bundle);
     }
 }
